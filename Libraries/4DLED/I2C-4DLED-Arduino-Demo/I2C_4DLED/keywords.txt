@@ -1,0 +1,45 @@
+#######################################
+# Syntax Coloring Map For MCP9801
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+SAA1064	KEYWORD1
+I2C_4DLED	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+begin	KEYWORD2
+clearDisplay	KEYWORD2
+testDisplaySegments	KEYWORD2
+setDisplayOutputCurrent	KEYWORD2
+writeDecimal	KEYWORD2
+writeHexadecimal	KEYWORD2
+
+#######################################
+# Instances (KEYWORD2)
+#######################################
+
+FourDigitLedDisplay	KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+
+OUTPUT_CURRENT_0_MA	LITERAL1
+
+OUTPUT_CURRENT_3_MA	LITERAL1
+
+OUTPUT_CURRENT_6_MA	LITERAL1
+
+OUTPUT_CURRENT_9_MA	LITERAL1
+
+OUTPUT_CURRENT_12_MA	LITERAL1
+
+OUTPUT_CURRENT_15_MA	LITERAL1
+OUTPUT_CURRENT_18_MA	LITERAL1
+OUTPUT_CURRENT_21_MA	LITERAL1

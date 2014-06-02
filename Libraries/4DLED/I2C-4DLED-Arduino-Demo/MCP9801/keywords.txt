@@ -1,0 +1,88 @@
+#######################################
+# Syntax Coloring Map For MCP9801
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+MCP9801	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+begin	KEYWORD2
+setOneShot	KEYWORD2
+getOneShot	KEYWORD2
+setADCResolution	KEYWORD2
+getADCResolution	KEYWORD2
+setFaultQueue	KEYWORD2
+getFaultQueue	KEYWORD2
+setAlertPolarity	KEYWORD2
+getAlertPolarity	KEYWORD2
+setMode	KEYWORD2
+getMode	KEYWORD2
+setShutdown	KEYWORD2
+getShutdown	KEYWORD2
+readTemperature	KEYWORD2
+setTemperatureHysteresis	KEYWORD2
+
+getTemperatureHysteresis	KEYWORD2
+
+setTemperatureLimit	KEYWORD2
+
+getTemperatureLimit	KEYWORD2
+
+
+#######################################
+# Instances (KEYWORD2)
+#######################################
+
+TemperatureSensor	KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+
+TEMPERATURE_REGISTER	LITERAL1
+
+CONFIG_REGISTER	LITERAL1
+
+TEMPERATURE_HYSTERESIS_REGISTER	LITERAL1
+
+TEMPERATURE_LIMIT_SET_REGISTER	LITERAL1
+
+ONESHOT_DISABLE	LITERAL1
+
+ONESHOT_ENABLE	LITERAL1
+
+RESOLUTION_9BIT	LITERAL1
+
+RESOLUTION_10BIT	LITERAL1
+
+RESOLUTION_11BIT	LITERAL1
+
+RESOLUTION_12BIT	LITERAL1
+
+FAULTQUEUE_1	LITERAL1
+
+FAULTQUEUE_2	LITERAL1
+
+FAULTQUEUE_4	LITERAL1
+
+FAULTQUEUE_8	LITERAL1
+
+POLARITY_ACTIVE_LOW	LITERAL1
+
+POLARITY_ACTIVE_HIGH	LITERAL1
+
+COMPARATOR_MODE	LITERAL1
+
+INTERRUPT_MODE	LITERAL1
+
+SHUTDOWN_DISABLE	LITERAL1
+
+SHUTDOWN_ENABLE	LITERAL1
+
+
