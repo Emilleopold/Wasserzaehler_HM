@@ -11,13 +11,25 @@
 boolean Status = false;
 char Orderstring[255];
 char Str10[10];
-char SysVarTemperatur[] = "Temperatur";
-char SysVarWasserzaehler[] = "Wasserzaehler";
+char SysVarTemperatur[] = "Temp_UV_Pergola";
+char SysVarWasserzaehler[] = "Wasser_Zisterne";
+char SysVarWasserfluss[] = "Wasserfluss_Zisterne";
+char SysVarWasserdruck[] = "Druck_Zisterne";
+char StrTemperatur[10] = "";
+char StrWasserfluss[10] = "";
+char StrWasserdruck[10] = "";
 float Temperatur = 0.0;
+float Wasserfluss = 0.0;
+float Wasserdruck = 0.0;
 unsigned long Wasserzaehler = 0;
+unsigned long WasserzaehlerRaw = 0;
 unsigned long WasserzaehlerOld = 0;
 unsigned long OldMilli = 0;
-long counter = 0;
+//long counter = 0;
+unsigned long FlussWasserzaehlerOld = 0;
+unsigned long FlussMilli = 0;
+unsigned long FlussOldMilli = 0;
+int HMSequence = 0;
 
 const uint8_t ain0 = 0;
 const uint8_t int4 = 7;
@@ -43,8 +55,8 @@ int hours, minutes, seconds;
 */
 
 // include the library code:
-#include <Wire.h> 
-#include <LiquidCrystal_I2C.h>
+#include <Wire.h>
+#include <LiquidCrystal.h>
 
 boolean BackLightState = LOW;             // BackLightState used to set the BackLight
 boolean BackLightStateChanged = false;             // BackLightState used to set the BackLight
@@ -67,13 +79,13 @@ Beschreibung:  Dieses Beispiel zeigt das Auslesen des Temperatursensors MCP9801
 globale Konstanten
 ******************************************************************************/
 // mögliche Einheiten der Temperaturanzeige
-enum Unit
+/*enum Unit
 {
   UNIT_CELSIUS = 0x00,
   UNIT_FAHRENHEIT,
   UNIT_KELVIN
 };
-
+*/
 // Die I2C-Adresse des SAA1064-Chips ergibt sich durch die Belegung der Lötjumper
 // J6 bis J9, wobei immer nur ein Jumper gebrückt sein darf.
 // J6 gebrückt -> Adresse 0x76
@@ -101,26 +113,29 @@ const uint8_t i2cAddressSAA1064 = 0x70;
 const uint8_t i2cAddressMCP9801 = 0x90;
 
 // Pinbelegung der Tasten zur Auswahl der Einheit
-const uint8_t pinCelsiusButton        = 8;
-const uint8_t pinFahrenheitButton     = 9;
-const uint8_t pinKelvinButton         = 10;
-const uint8_t pinBackLight            = 11;
+const uint8_t pinButton1        = 8;
+const uint8_t pinButton2        = 9;
+const uint8_t pinButton3        = 10;
+const uint8_t pinButton4        = 11;
 
 // Instantiate a Bounce object
-Bounce debounceBackLight = Bounce();
+Bounce debounceButton1 = Bounce();
+Bounce debounceButton2 = Bounce();
+Bounce debounceButton3 = Bounce();
+Bounce debounceButton4 = Bounce();
 
 /******************************************************************************
 globale Variablen
 ******************************************************************************/
 // Temperaturwert
-int32_t temperature = 0;
+int32_t RawTemperature = 0;
 
 // Einheit in der die Temperatur angezeigt wird
-uint8_t unit = UNIT_CELSIUS;
+//uint8_t unit = UNIT_CELSIUS;
 
 // Connect via i2c, default address #0 (A0-A2 not jumpered)
 //LiquidCrystal lcd(0);
-LiquidCrystal_I2C lcd(0x3f,20,4);  // set the LCD address to 0x3f for a 16 chars and 2 line display
+LiquidCrystal lcd(0);  // set the LCD address to 0x3f for a 16 chars and 2 line display
 
 const uint8_t ledrd = 13; // Rote LED on board
 boolean ledState1s = LOW;             // ledState used to set the LED in 1s-Timer
@@ -164,14 +179,16 @@ void setup() {
   Serial.print("6 hour tick started id=");
   Serial.println(tick6HourEvent);
 
-  Wasserzaehler = ReadCountEEProm(0);
-
+  WasserzaehlerRaw = ReadCountEEProm(0);
+  WasserzaehlerRaw = 0;
   Console.begin();
+  Console.println("SETUP finished");
+
 
   // set up the LCD's number of rows and columns:
   lcd.begin(20, 4);
   // Print a message to the LCD.
-  lcd.print("hello, world!");
+  // lcd.print("hello, world!");
 
   // I2C-Modul initialisieren
   // Wire.begin();
@@ -186,90 +203,133 @@ void setup() {
   TemperatureSensor.setADCResolution(TemperatureSensor.RESOLUTION_12BIT);
 
   // Pins für die Taster als Eingänge setzen
-  pinMode(pinCelsiusButton, INPUT);
-  pinMode(pinFahrenheitButton, INPUT);
-  pinMode(pinKelvinButton, INPUT);
-  pinMode(pinBackLight, INPUT);
+  pinMode(pinButton1, INPUT);
+  pinMode(pinButton2, INPUT);
+  pinMode(pinButton3, INPUT);
+  pinMode(pinButton4, INPUT);
   pinMode(int4, INPUT);
 
 
   // interne Pullup-Widerstände für die Tastereingänge aktivieren
-  digitalWrite(pinCelsiusButton, HIGH);
-  digitalWrite(pinFahrenheitButton, HIGH);
-  digitalWrite(pinKelvinButton, HIGH);
-  digitalWrite(pinBackLight, HIGH);
+  digitalWrite(pinButton1, HIGH);
+  digitalWrite(pinButton2, HIGH);
+  digitalWrite(pinButton3, HIGH);
+  digitalWrite(pinButton4, HIGH);
   digitalWrite(int4, HIGH);
 
   // After setting up the button, setup debouncer
-  debounceBackLight.attach(pinBackLight);
-  debounceBackLight.interval(10);
-  
-  attachInterrupt(4, interrupt, CHANGE);
+  debounceButton1.attach(pinButton1);
+  debounceButton1.interval(10);
+  debounceButton2.attach(pinButton2);
+  debounceButton2.interval(10);
+  debounceButton3.attach(pinButton3);
+  debounceButton3.interval(10);
+  debounceButton4.attach(pinButton4);
+  debounceButton4.interval(10);
 
-  wdt_enable(WDTO_8S); // Enable den Watchdog mit 8 Sekunden
+  attachInterrupt(4, interrupt, RISING);
+
+  //wdt_enable(WDTO_8S); // Enable den Watchdog mit 8 Sekunden
 }
 
 void loop() {
-  wdt_reset(); // Retrigger Watchdog
+  //wdt_reset(); // Retrigger Watchdog
   //delay(50); // Poll every 50ms
   t.update();
   // Update the debouncer
-  debounceBackLight.update();
-  // set the cursor to column 0, line 1
-  // (note: line 1 is the second row, since counting begins with 0):
-  lcd.setCursor(0, 1);
-  // print the number of seconds since reset:
-  lcd.print(millis() / 1000);
+  debounceButton1.update();
+  debounceButton2.update();
+  debounceButton3.update();
+  debounceButton4.update();
 
-  // Temperaturwert in Grad Celsius vom Sensor lesen
-  // (der Temperaturwert ist in Feskommadarstellung mit 4 Nachkommastellen gespeichert)
-  temperature = TemperatureSensor.readTemperature();
-
-  // falls eine andere Einheit ausgewählt ist, die Temperatur entsprechend
-  // umrechnen
-  if (unit == UNIT_FAHRENHEIT)
-  {
-    temperature = temperature * 18 / 10 + 320000;
-  }
-  else if (unit == UNIT_KELVIN)
-  {
-    temperature = temperature + 2731500;
-  }
-
-  // Temperatur in der ausgewählten Einheit auf dem Display mit
-  // einer Nachkommastelle anzeigen
-  //FourDigitLedDisplay.writeDecimal( (temperature) / 1000, 1 );
-  lcd.setCursor(0, 2);
-  // print the number of seconds since reset:
-  FloatToString(float(temperature / 1000) / 10.0, 10, Str10);
-  lcd.print(Str10);
-
-  // Auswahl der Einheit bei Betätigung des jeweiligen Tasters umschalten
-  if (digitalRead(pinCelsiusButton) == LOW) {
-    unit = UNIT_CELSIUS;
-    counter = 0;
-    }
-  if (digitalRead(pinFahrenheitButton) == LOW) unit = UNIT_FAHRENHEIT;
-  if (digitalRead(pinKelvinButton) == LOW) unit = UNIT_KELVIN;
-  if (debounceBackLight.read() == LOW && BackLightStateChanged == false) {
+  if (debounceButton4.read() == LOW && BackLightStateChanged == false) {
     BackLightState = !BackLightState;
     BackLightStateChanged = true;
     Serial.println("Button pressed");
   }
-  if (debounceBackLight.read() == HIGH) BackLightStateChanged = false;
+  if (debounceButton4.read() == HIGH) BackLightStateChanged = false;
   lcd.setBacklight(BackLightState);
-
-  lcd.setCursor(0, 3);
-  lcd.print(counter);
 
   //Serial.println("Button ?");
   //Serial.println(debounceBackLight.read());
   //Serial.println(BackLightStateChanged);
 }
 
+void WerteAnzeigen()
+{
+  // Temperaturwert in Grad Celsius vom Sensor lesen
+  // (der Temperaturwert ist in Feskommadarstellung mit 4 Nachkommastellen gespeichert)
+  RawTemperature = TemperatureSensor.readTemperature();
+  // Temperatur anzeigen
+  Temperatur = float(RawTemperature) / 10000.0;
+  lcd.setCursor(0, 0);
+  lcd.print("Temperatur:       °C");
+  lcd.setCursor(11, 0);
+  FloatToString(Temperatur, 10, StrTemperatur);
+  lcd.print(StrTemperatur);
+  Console.println(StrTemperatur);
+  
+  // Wasserzähler anzeigen
+  Wasserzaehler = WasserzaehlerRaw / 450; // 450 Imp/l
+  lcd.setCursor(0, 1);
+  lcd.print("W.zaehler:         l");
+  lcd.setCursor(11, 1);
+  lcd.print(Wasserzaehler);
+  Console.println(WasserzaehlerRaw);
+  Console.println(Wasserzaehler);
+
+  // Wasserfluss anzeigen
+  FlussMilli = millis();
+  Wasserfluss = float(Wasserzaehler - FlussWasserzaehlerOld) / float(FlussMilli - FlussOldMilli) * 60000.0; // l/min
+  FlussWasserzaehlerOld = Wasserzaehler;
+  FlussOldMilli = FlussMilli;
+  lcd.setCursor(0, 2);
+  lcd.print("Wasserfluss:     l/h");
+  lcd.setCursor(11, 2);
+  FloatToString(Wasserfluss, 10, StrWasserfluss);
+  lcd.print(StrWasserfluss);
+  Console.println(StrWasserfluss);
+
+  // Druck anzeigen
+  Wasserdruck = float(analogRead(ain0) - 205) / 818.0 * 10.0; // 4-20mA -> 1-5V -> 0-10 bar
+  lcd.setCursor(0, 3);
+  lcd.print("W.Druck:         bar");
+  lcd.setCursor(11, 3);
+  FloatToString(Wasserdruck, 10, StrWasserdruck);
+  lcd.print(StrWasserdruck);
+  Console.println(StrWasserdruck);
+}
+
+void WerteZurHM()
+{
+  HttpClient Hclient;
+  TimeStamp("Hclient");
+  switch (HMSequence) {
+    case 0:
+      sprintf(Orderstring, "http://192.168.20.220:8181/do.exe?r1=dom.GetObject(\"%s\").State(\"%s\")", SysVarTemperatur, StrTemperatur);
+      break;
+    case 1:
+      sprintf(Orderstring, "http://192.168.20.220:8181/do.exe?r1=dom.GetObject(\"%s\").State(\"%d\")", SysVarWasserzaehler, Wasserzaehler);
+      break;
+    case 2:
+      sprintf(Orderstring, "http://192.168.20.220:8181/do.exe?r1=dom.GetObject(\"%s\").State(\"%s\")", SysVarWasserfluss, StrWasserfluss);
+      break;
+    case 3:
+      sprintf(Orderstring, "http://192.168.20.220:8181/do.exe?r1=dom.GetObject(\"%s\").State(\"%s\")", SysVarWasserdruck, StrWasserdruck);
+      break;
+  }
+  ++HMSequence;
+  if (HMSequence > 3) HMSequence = 0;
+  //Serial.println(Orderstring);
+  Console.println(Orderstring);
+  TimeStamp("Zur HM");
+  Hclient.get(Orderstring);
+  TimeStamp("Orderstring gesendet");
+}
+
 void interrupt()
 {
-  ++counter;
+  ++WasserzaehlerRaw;
 }
 
 void FloatToString( float val, unsigned int precision, char* Dest) {
@@ -295,13 +355,13 @@ void FloatToString( float val, unsigned int precision, char* Dest) {
   strcpy(Dest, Teil1);
 }
 
-
 void TimeStamp(char* Str) {
-  unsigned long Milli = millis();
-  Serial.print(Str);
-  Serial.print(" Differenzzeit [Sek] : ");
-  Serial.println(Milli - OldMilli);
-  OldMilli = Milli;
+  // nur für Testzwecke
+  //unsigned long Milli = millis();
+  //Serial.print(Str);
+  //Serial.print(" Differenzzeit [Sek] : ");
+  //Serial.println(Milli - OldMilli);
+  //OldMilli = Milli;
 }
 
 long ReadCountEEProm(int BaseAddress) {
@@ -334,11 +394,11 @@ void doAll1Sek(void* context) {
   //Serial.print(time);
   //Serial.print(" 1 second tick: millis()=");
   //Serial.println(millis());
+  WerteAnzeigen();
   ledState1s = !ledState1s;
   digitalWrite(ledrd, ledState1s);
   Serial.print("Poti :" );
   Serial.println(analogRead(ain0));
-  Wasserzaehler += long(analogRead(ain0));
   TimeState = !TimeState;
   if (TimeState) {
     FourDigitLedDisplay.writeDecimal(hours * 100 + minutes, 2 );
@@ -353,19 +413,7 @@ void doAll10Sek(void* context) {
   //Serial.print(time);
   //Serial.print(" 10 second tick: millis()=");
   //Serial.println(millis());
-  HttpClient Hclient;
-  TimeStamp("Hclient");
-  //char Str1[20];
-  //FloatToString(Temperatur, 100, Str1);
-  //sprintf(Orderstring,"http://192.168.11.220:8181/do.exe?r1=dom.GetObject(\"%s\").State(\"%s\")",SysVarTemperatur, Str1);
-  sprintf(Orderstring, "http://192.168.11.220:8181/do.exe?r1=dom.GetObject(\"%s\").State(\"%d\")", SysVarWasserzaehler, Wasserzaehler);
-  Serial.println(Orderstring);
-  Console.println(Orderstring);
-  //Serial.println(Temperatur);
-  //Temperatur = Temperatur + 0.12;
-  TimeStamp("Temp");
-  Hclient.get(Orderstring);
-  TimeStamp("Orderstring");
+  WerteZurHM();
 }
 
 void doAll1Min(void* context) {
