@@ -11,28 +11,33 @@
 boolean Status = false;
 char Orderstring[255];
 char Str10[10];
-char SysVarTemperatur[] = "Temp_UV_Pergola";
-char SysVarWasserzaehler[] = "Wasser_Zisterne";
-char SysVarWasserfluss[] = "Wasserfluss_Zisterne";
-char SysVarWasserdruck[] = "Druck_Zisterne";
-char StrTemperatur[10] = "";
-char StrWasserfluss[10] = "";
+char SysVarWasserzaehlerHecke[] = "Wasser_Hecke";
+char SysVarWasserflussHecke[] = "Wasserfluss_Hecke";
+char SysVarWasserzaehlerRasen[] = "Wasser_Rasen";
+char SysVarWasserflussRasen[] = "Wasserfluss_Rasen";
+char SysVarWasserdruck[] = "Druck_Leitung";
+char StrWasserflussHecke[10] = "";
+char StrWasserflussRasen[10] = "";
 char StrWasserdruck[10] = "";
-float Temperatur = 0.0;
-float Wasserfluss = 0.0;
+float WasserflussHecke = 0.0;
+float WasserflussRasen = 0.0;
 float Wasserdruck = 0.0;
-unsigned long Wasserzaehler = 0;
-unsigned long WasserzaehlerRaw = 0;
-unsigned long WasserzaehlerOld = 0;
+unsigned long WasserzaehlerHecke = 0;
+unsigned long WasserzaehlerRawHecke = 0;
+unsigned long WasserzaehlerOldHecke = 0;
+unsigned long WasserzaehlerRasen = 0;
+unsigned long WasserzaehlerRawRasen = 0;
+unsigned long WasserzaehlerOldRasen = 0;
 unsigned long OldMilli = 0;
-//long counter = 0;
-unsigned long FlussWasserzaehlerOld = 0;
+unsigned long FlussWasserzaehlerOldHecke = 0;
+unsigned long FlussWasserzaehlerOldRasen = 0;
 unsigned long FlussMilli = 0;
 unsigned long FlussOldMilli = 0;
 int HMSequence = 0;
 
-#define ain0 0
-#define int4 7
+const uint8_t ain0 = 0;
+const uint8_t int1 = 2;
+const uint8_t int0 = 3;
 
 Timer t;
 
@@ -40,20 +45,30 @@ Process date;
 int hours, minutes, seconds;
 
 /*
- Demonstration sketch for Adafruit i2c/SPI LCD backpack
- using MCP23008 I2C expander
- ( http://www.ladyada.net/products/i2cspilcdbackpack/index.html )
+  LiquidCrystal Library - display() and noDisplay()
+ 
+ Demonstrates the use a 16x2 LCD display.  The LiquidCrystal
+ library works with all LCD displays that are compatible with the 
+ Hitachi HD44780 driver. There are many of them out there, and you
+ can usually tell them by the 16-pin interface.
+ 
+ This sketch prints "Hello World!" to the LCD and uses the 
+ display() and noDisplay() functions to turn on and off
+ the display.
+ 
+ The circuit:
+ * LCD RS pin to digital pin 12 -> 8
+ * LCD RW pin to digital pin 9
+ * LCD Enable pin to digital pin 11 -> 10
+ * LCD D4 pin to digital pin 5 -> 4
+ * LCD D5 pin to digital pin 4 -> 5
+ * LCD D6 pin to digital pin 3 -> 6
+ * LCD D7 pin to digital pin 2 -> 7
+ * 10K resistor:
+ * ends to +5V and ground
+ * wiper to LCD VO pin (pin 3)
 
- This sketch prints "Hello World!" to the LCD
- and shows the time.
-
-  The circuit:
- * 5V to Arduino 5V pin
- * GND to Arduino GND pin
- * CLK to Analog #5 at YUN #3
- * DAT to Analog #4 at YUN #2
 */
-
 // include the library code:
 #include <Wire.h>
 #include <LiquidCrystal.h>
@@ -62,82 +77,29 @@ boolean BackLightState = LOW;             // BackLightState used to set the Back
 boolean BackLightStateChanged = false;             // BackLightState used to set the BackLight
 
 
-/******************************************************************************
-Beispiel:      showTemperatureWithConversation
-
-Beschreibung:  Dieses Beispiel zeigt das Auslesen des Temperatursensors MCP9801
-               und die Ausgabe der Temperatur auf dem Display. Die Anzeige kann
-               dabei mit Hilfe der Taster zwischen °C, °F und K umgeschaltet
-               werden.
-******************************************************************************/
-//#include "Wire.h"
-#include "I2C_4DLED.h"
-#include "MCP9801.h"
-#include <Bounce2.h>
-
-/******************************************************************************
-globale Konstanten
-******************************************************************************/
-// mögliche Einheiten der Temperaturanzeige
-/*enum Unit
-{
-  UNIT_CELSIUS = 0x00,
-  UNIT_FAHRENHEIT,
-  UNIT_KELVIN
-};
-*/
-// Die I2C-Adresse des SAA1064-Chips ergibt sich durch die Belegung der Lötjumper
-// J6 bis J9, wobei immer nur ein Jumper gebrückt sein darf.
-// J6 gebrückt -> Adresse 0x76
-// J7 gebrückt -> Adresse 0x74
-// J8 gebrückt -> Adresse 0x72
-// J9 gebrückt -> Adresse 0x70 (werkseitig gebrückt)
-const uint8_t i2cAddressSAA1064 = 0x70;
-
-// Die I2C-Adresse des MCP9801-Chips ergibt sich durch die Belegung der Lötjumper
-// J10 bis J12.
-//
-// 0: Lötjumper gebrückt (Pin liegt an Masse)
-// 1: Lötjumper offen (Pin liegt an Versorgungsspannung)
-//
-//   J12 (A2)        J11 (A1)        J10 (A0)        Adresse
-// ---------------------------------------------------------
-//    0               0               0                0x90
-//    0               0               1                0x92
-//    0               1               0                0x94
-//    0               1               1                0x96
-//    1               0               0                0x98
-//    1               0               1                0x9A
-//    1               1               0                0x9C
-//    1               1               1                0x9E
-const uint8_t i2cAddressMCP9801 = 0x90;
-
 // Pinbelegung der Tasten zur Auswahl der Einheit
-#define pinButton1 8
-#define pinButton2 9
-#define pinButton3 10
-#define pinButton4 11
+const uint8_t pinButton1        = 12;
+const uint8_t pinButton2        = 11;
+const uint8_t pinButton3        = 18; // A4
 
+#include "Bounce2.h"
 // Instantiate a Bounce object
 Bounce debounceButton1 = Bounce();
 Bounce debounceButton2 = Bounce();
 Bounce debounceButton3 = Bounce();
-Bounce debounceButton4 = Bounce();
 
 /******************************************************************************
 globale Variablen
 ******************************************************************************/
-// Temperaturwert
-int32_t RawTemperature = 0;
 
-// Einheit in der die Temperatur angezeigt wird
-//uint8_t unit = UNIT_CELSIUS;
+// initialize the library with the numbers of the interface pins
+// LiquidCrystal(rs, rw, enable, d4, d5, d6, d7) 
+LiquidCrystal lcd(8, 9, 10, 4, 5, 6, 7);
 
-// Connect via i2c, default address #0 (A0-A2 not jumpered)
-//LiquidCrystal lcd(0);
-LiquidCrystal lcd(0);  // set the LCD address to 0x3f for a 16 chars and 2 line display
-
-#define ledrd 13 // Rote LED on board
+const uint8_t ledrd = 13; // Rote LED on board
+const uint8_t ledButton1 = 15; // Grüne LED in Taste 1 (A1)
+const uint8_t ledButton2 = 16; // Grüne LED in Taste 2 (A2)
+const uint8_t ledButton3 = 17; // Grüne LED in Taste 3 (A3)
 boolean ledState1s = LOW;             // ledState used to set the LED in 1s-Timer
 boolean TimeState = LOW;
 
@@ -179,8 +141,10 @@ void setup() {
   //Serial.print("6 hour tick started id=");
   //Serial.println(tick6HourEvent);
 
-  WasserzaehlerRaw = ReadCountEEProm(0);
-  WasserzaehlerRaw = 0;
+  WasserzaehlerRawHecke = ReadCountEEProm(0);
+  WasserzaehlerRawHecke = 0;
+  WasserzaehlerRawRasen = ReadCountEEProm(4);
+  WasserzaehlerRawRasen = 0;
   Console.begin();
   Console.println("SETUP finished");
 
@@ -190,44 +154,46 @@ void setup() {
   // Print a message to the LCD.
   // lcd.print("hello, world!");
 
-  // I2C-Modul initialisieren
-  // Wire.begin();
-
-  // 4-Digit-LED-Anzeige mit I2C-Adresse des SAA1064 initialisieren
-  FourDigitLedDisplay.begin(i2cAddressSAA1064);
-
-  // Temperatursensor mit I2C-Adresse des MCP9801 initialisieren
-  TemperatureSensor.begin(i2cAddressMCP9801);
-
-  // Temperatursensor auf eine Auflösung von 12 Bit umschalten
-  TemperatureSensor.setADCResolution(TemperatureSensor.RESOLUTION_12BIT);
+  // Pins für die LED als AusEgänge setzen
+/*  pinMode(ledButton1, OUTPUT);
+  digitalWrite(ledButton1, LOW);
+  pinMode(ledButton2, OUTPUT);
+  digitalWrite(ledButton2, LOW);
+  pinMode(ledButton3, OUTPUT);
+  digitalWrite(ledButton3, LOW);
+*/
+  pinMode(A1, OUTPUT);
+  digitalWrite(A1, LOW);
+  pinMode(A2, OUTPUT);
+  digitalWrite(A2, LOW);
+  pinMode(A3, OUTPUT);
+  digitalWrite(A3, LOW);
 
   // Pins für die Taster als Eingänge setzen
   pinMode(pinButton1, INPUT);
   pinMode(pinButton2, INPUT);
-  pinMode(pinButton3, INPUT);
-  pinMode(pinButton4, INPUT);
-  pinMode(int4, INPUT);
+  pinMode(A4, INPUT);
+  pinMode(int0, INPUT);
+  pinMode(int1, INPUT);
 
 
   // interne Pullup-Widerstände für die Tastereingänge aktivieren
   digitalWrite(pinButton1, HIGH);
   digitalWrite(pinButton2, HIGH);
-  digitalWrite(pinButton3, HIGH);
-  digitalWrite(pinButton4, HIGH);
-  digitalWrite(int4, HIGH);
+  digitalWrite(A4, HIGH);
+  digitalWrite(int0, HIGH);
+  digitalWrite(int1, HIGH);
 
   // After setting up the button, setup debouncer
   debounceButton1.attach(pinButton1);
   debounceButton1.interval(10);
   debounceButton2.attach(pinButton2);
   debounceButton2.interval(10);
-  debounceButton3.attach(pinButton3);
+  debounceButton3.attach(A4);
   debounceButton3.interval(10);
-  debounceButton4.attach(pinButton4);
-  debounceButton4.interval(10);
 
-  attachInterrupt(4, interrupt, RISING);
+  attachInterrupt(0, interrupt0, RISING); // Wasserzähler Hecke
+  attachInterrupt(1, interrupt1, RISING); // Wasserzähler Rasen
 
   //wdt_enable(WDTO_8S); // Enable den Watchdog mit 8 Sekunden
 }
@@ -240,55 +206,50 @@ void loop() {
   debounceButton1.update();
   debounceButton2.update();
   debounceButton3.update();
-  debounceButton4.update();
 
-  if (debounceButton4.read() == LOW && BackLightStateChanged == false) {
+  if (debounceButton3.read() == LOW && BackLightStateChanged == false) {
     BackLightState = !BackLightState;
     BackLightStateChanged = true;
-    //Serial.println("Button pressed");
+    Serial.println("Button pressed");
   }
-  if (debounceButton4.read() == HIGH) BackLightStateChanged = false;
+  if (debounceButton3.read() == HIGH) BackLightStateChanged = false;
   lcd.setBacklight(BackLightState);
-
-  //Serial.println("Button ?");
-  //Serial.println(debounceBackLight.read());
-  //Serial.println(BackLightStateChanged);
 }
 
 void WerteAnzeigen()
 {
-  // Temperaturwert in Grad Celsius vom Sensor lesen
-  // (der Temperaturwert ist in Feskommadarstellung mit 4 Nachkommastellen gespeichert)
-  RawTemperature = TemperatureSensor.readTemperature();
-  // Temperatur anzeigen
-  Temperatur = float(RawTemperature) / 10000.0;
+  // WasserzählerHecke anzeigen
+  WasserzaehlerHecke = WasserzaehlerRawHecke / 450; // 450 Imp/l
   lcd.setCursor(0, 0);
-  lcd.print("Temperatur:       °C");
+  lcd.print("W.zaehlerH:        l");
   lcd.setCursor(11, 0);
-  FloatToString(Temperatur, 10, StrTemperatur);
-  lcd.print(StrTemperatur);
-  Console.println(StrTemperatur);
+  lcd.print(WasserzaehlerHecke);
+  Console.println(WasserzaehlerRawHecke);
+  Console.println(WasserzaehlerHecke);
+
   
-  // Wasserzähler anzeigen
-  Wasserzaehler = WasserzaehlerRaw / 450; // 450 Imp/l
+  // WasserzählerRasen anzeigen
+  WasserzaehlerRasen = WasserzaehlerRawRasen / 450; // 450 Imp/l
   lcd.setCursor(0, 1);
-  lcd.print("W.zaehler:         l");
+  lcd.print("W.zaehlerR:        l");
   lcd.setCursor(11, 1);
-  lcd.print(Wasserzaehler);
-  Console.println(WasserzaehlerRaw);
-  Console.println(Wasserzaehler);
+  lcd.print(WasserzaehlerRasen);
+  Console.println(WasserzaehlerRawRasen);
+  Console.println(WasserzaehlerRasen);
 
   // Wasserfluss anzeigen
   FlussMilli = millis();
-  Wasserfluss = float(Wasserzaehler - FlussWasserzaehlerOld) / float(FlussMilli - FlussOldMilli) * 60000.0; // l/min
-  FlussWasserzaehlerOld = Wasserzaehler;
+  WasserflussHecke = float(WasserzaehlerHecke - FlussWasserzaehlerOldHecke) / float(FlussMilli - FlussOldMilli) * 60000.0; // l/min
+  FlussWasserzaehlerOldHecke = WasserzaehlerHecke;
+  WasserflussRasen = float(WasserzaehlerRasen - FlussWasserzaehlerOldRasen) / float(FlussMilli - FlussOldMilli) * 60000.0; // l/min
+  FlussWasserzaehlerOldRasen = WasserzaehlerRasen;
   FlussOldMilli = FlussMilli;
   lcd.setCursor(0, 2);
-  lcd.print("Wasserfluss:     l/h");
+  lcd.print("WasserflussH:    l/h");
   lcd.setCursor(11, 2);
-  FloatToString(Wasserfluss, 10, StrWasserfluss);
-  lcd.print(StrWasserfluss);
-  Console.println(StrWasserfluss);
+  FloatToString(WasserflussHecke, 10, StrWasserflussHecke);
+  lcd.print(StrWasserflussHecke);
+  Console.println(StrWasserflussHecke);
 
   // Druck anzeigen
   Wasserdruck = float(analogRead(ain0) - 205) / 818.0 * 10.0; // 4-20mA -> 1-5V -> 0-10 bar
@@ -305,28 +266,36 @@ void WerteZurHM()
   HttpClient Hclient;
   switch (HMSequence) {
     case 0:
-      sprintf(Orderstring, "http://192.168.20.220:8181/do.exe?r1=dom.GetObject(\"%s\").State(\"%s\")", SysVarTemperatur, StrTemperatur);
+      sprintf(Orderstring, "http://192.168.11.220:8181/do.exe?r1=dom.GetObject(\"%s\").State(\"%d\")", SysVarWasserzaehlerHecke, WasserzaehlerHecke);
       break;
     case 1:
-      sprintf(Orderstring, "http://192.168.20.220:8181/do.exe?r1=dom.GetObject(\"%s\").State(\"%d\")", SysVarWasserzaehler, Wasserzaehler);
+      sprintf(Orderstring, "http://192.168.11.220:8181/do.exe?r1=dom.GetObject(\"%s\").State(\"%s\")", SysVarWasserflussHecke, StrWasserflussHecke);
       break;
     case 2:
-      sprintf(Orderstring, "http://192.168.20.220:8181/do.exe?r1=dom.GetObject(\"%s\").State(\"%s\")", SysVarWasserfluss, StrWasserfluss);
+      sprintf(Orderstring, "http://192.168.11.220:8181/do.exe?r1=dom.GetObject(\"%s\").State(\"%d\")", SysVarWasserzaehlerRasen, WasserzaehlerRasen);
       break;
     case 3:
-      sprintf(Orderstring, "http://192.168.20.220:8181/do.exe?r1=dom.GetObject(\"%s\").State(\"%s\")", SysVarWasserdruck, StrWasserdruck);
+      sprintf(Orderstring, "http://192.168.11.220:8181/do.exe?r1=dom.GetObject(\"%s\").State(\"%s\")", SysVarWasserflussRasen, StrWasserflussRasen);
+      break;
+    case 4:
+      sprintf(Orderstring, "http://192.168.11.220:8181/do.exe?r1=dom.GetObject(\"%s\").State(\"%s\")", SysVarWasserdruck, StrWasserdruck);
       break;
   }
   ++HMSequence;
-  if (HMSequence > 3) HMSequence = 0;
+  if (HMSequence > 4) HMSequence = 0;
   //Serial.println(Orderstring);
   Console.println(Orderstring);
   Hclient.get(Orderstring);
 }
 
-void interrupt()
+void interrupt0()
 {
-  ++WasserzaehlerRaw;
+  ++WasserzaehlerRawHecke;
+}
+
+void interrupt1()
+{
+  ++WasserzaehlerRawRasen;
 }
 
 void FloatToString( float val, unsigned int precision, char* Dest) {
@@ -374,7 +343,8 @@ void WriteCountEEProm(long Count, int BaseAddress) {
 
 void EEPromWrite(void) {
   Serial.println("EEPROM geschrieben");
-  WriteCountEEProm(Wasserzaehler , 0);
+  WriteCountEEProm(WasserzaehlerHecke , 0);
+  WriteCountEEProm(WasserzaehlerRasen , 4);
 }
 
 void doAll1Sek(void* context) {
@@ -386,12 +356,10 @@ void doAll1Sek(void* context) {
   ledState1s = !ledState1s;
   digitalWrite(ledrd, ledState1s);
   TimeState = !TimeState;
-  if (TimeState) {
-    FourDigitLedDisplay.writeDecimal(hours * 100 + minutes, 2 );
-  }
-  else {
-    FourDigitLedDisplay.writeDecimal(hours * 100 + minutes, -1 );
-  }
+  digitalWrite(A3, TimeState);
+  Serial.println(debounceButton1.read());
+  Serial.println(debounceButton2.read());
+  Serial.println(debounceButton3.read());
 }
 
 void doAll10Sek(void* context) {
@@ -441,9 +409,10 @@ void doAll1Hour(void* context) {
   //Serial.print(time);
   //Serial.print(" 1 hour tick: millis()=");
   //Serial.println(millis());
-  if (Wasserzaehler != WasserzaehlerOld) {
+  if ((WasserzaehlerHecke != WasserzaehlerOldHecke) || (WasserzaehlerRasen != WasserzaehlerOldRasen)) {
     EEPromWrite();
-    WasserzaehlerOld = Wasserzaehler;
+    WasserzaehlerOldHecke = WasserzaehlerHecke;
+    WasserzaehlerOldRasen = WasserzaehlerRasen;
   }
 }
 
