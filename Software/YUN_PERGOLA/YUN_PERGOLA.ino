@@ -180,7 +180,7 @@ void setup() {
   //Serial.println(tick6HourEvent);
 
   WasserzaehlerRaw = ReadCountEEProm(0);
-  WasserzaehlerRaw = 0;
+  //WasserzaehlerRaw = 0;
   Console.begin();
   Console.println("SETUP finished");
 
