@@ -35,9 +35,9 @@ unsigned long FlussMilli = 0;
 unsigned long FlussOldMilli = 0;
 int HMSequence = 0;
 
-const uint8_t ain0 = 0;
-const uint8_t int1 = 2;
-const uint8_t int0 = 3;
+#define ain0 A0
+#define int0 3
+#define int1 2
 
 Timer t;
 
@@ -78,9 +78,9 @@ boolean BackLightStateChanged = false;             // BackLightState used to set
 
 
 // Pinbelegung der Tasten zur Auswahl der Einheit
-const uint8_t pinButton1        = 12;
-const uint8_t pinButton2        = 11;
-const uint8_t pinButton3        = 18; // A4
+#define pinButton1 12
+#define pinButton2 11
+#define pinButton3 A4
 
 #include "Bounce2.h"
 // Instantiate a Bounce object
@@ -96,10 +96,10 @@ globale Variablen
 // LiquidCrystal(rs, rw, enable, d4, d5, d6, d7) 
 LiquidCrystal lcd(8, 9, 10, 4, 5, 6, 7);
 
-const uint8_t ledrd = 13; // Rote LED on board
-const uint8_t ledButton1 = 15; // Grüne LED in Taste 1 (A1)
-const uint8_t ledButton2 = 16; // Grüne LED in Taste 2 (A2)
-const uint8_t ledButton3 = 17; // Grüne LED in Taste 3 (A3)
+#define ledrd 13 // Rote LED on board
+#define ledButton1 A1 // Grüne LED in Taste 1 (A1)
+#define ledButton2 A2 // Grüne LED in Taste 2 (A2)
+#define ledButton3 A3 // Grüne LED in Taste 3 (A3)
 boolean ledState1s = LOW;             // ledState used to set the LED in 1s-Timer
 boolean TimeState = LOW;
 
@@ -151,28 +151,19 @@ void setup() {
 
   // set up the LCD's number of rows and columns:
   lcd.begin(20, 4);
-  // Print a message to the LCD.
-  // lcd.print("hello, world!");
 
   // Pins für die LED als AusEgänge setzen
-/*  pinMode(ledButton1, OUTPUT);
+  pinMode(ledButton1, OUTPUT);
   digitalWrite(ledButton1, LOW);
   pinMode(ledButton2, OUTPUT);
   digitalWrite(ledButton2, LOW);
   pinMode(ledButton3, OUTPUT);
   digitalWrite(ledButton3, LOW);
-*/
-  pinMode(A1, OUTPUT);
-  digitalWrite(A1, LOW);
-  pinMode(A2, OUTPUT);
-  digitalWrite(A2, LOW);
-  pinMode(A3, OUTPUT);
-  digitalWrite(A3, LOW);
 
   // Pins für die Taster als Eingänge setzen
   pinMode(pinButton1, INPUT);
   pinMode(pinButton2, INPUT);
-  pinMode(A4, INPUT);
+  pinMode(pinButton3, INPUT);
   pinMode(int0, INPUT);
   pinMode(int1, INPUT);
 
@@ -180,7 +171,7 @@ void setup() {
   // interne Pullup-Widerstände für die Tastereingänge aktivieren
   digitalWrite(pinButton1, HIGH);
   digitalWrite(pinButton2, HIGH);
-  digitalWrite(A4, HIGH);
+  digitalWrite(pinButton3, HIGH);
   digitalWrite(int0, HIGH);
   digitalWrite(int1, HIGH);
 
@@ -189,7 +180,7 @@ void setup() {
   debounceButton1.interval(10);
   debounceButton2.attach(pinButton2);
   debounceButton2.interval(10);
-  debounceButton3.attach(A4);
+  debounceButton3.attach(pinButton3);
   debounceButton3.interval(10);
 
   attachInterrupt(0, interrupt0, RISING); // Wasserzähler Hecke
@@ -210,7 +201,7 @@ void loop() {
   if (debounceButton3.read() == LOW && BackLightStateChanged == false) {
     BackLightState = !BackLightState;
     BackLightStateChanged = true;
-    Serial.println("Button pressed");
+    //Serial.println("Button pressed");
   }
   if (debounceButton3.read() == HIGH) BackLightStateChanged = false;
   lcd.setBacklight(BackLightState);
@@ -356,7 +347,7 @@ void doAll1Sek(void* context) {
   ledState1s = !ledState1s;
   digitalWrite(ledrd, ledState1s);
   TimeState = !TimeState;
-  digitalWrite(A3, TimeState);
+  digitalWrite(ledButton3, TimeState);
   Serial.println(debounceButton1.read());
   Serial.println(debounceButton2.read());
   Serial.println(debounceButton3.read());
