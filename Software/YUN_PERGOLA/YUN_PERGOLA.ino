@@ -229,11 +229,11 @@ void setup() {
 
   attachInterrupt(4, interrupt, RISING);
 
-  //wdt_enable(WDTO_8S); // Enable den Watchdog mit 8 Sekunden
+  wdt_enable(WDTO_8S); // Enable den Watchdog mit 8 Sekunden
 }
 
 void loop() {
-  //wdt_reset(); // Retrigger Watchdog
+  wdt_reset(); // Retrigger Watchdog
   //delay(50); // Poll every 50ms
   t.update();
   // Update the debouncer
