@@ -187,7 +187,7 @@ void setup() {
   attachInterrupt(0, interrupt0, RISING); // Wasserzähler Hecke
   attachInterrupt(1, interrupt1, RISING); // Wasserzähler Rasen
 
-  //wdt_enable(WDTO_8S); // Enable den Watchdog mit 8 Sekunden
+  wdt_enable(WDTO_8S); // Enable den Watchdog mit 8 Sekunden
 }
 
 void loop() {
@@ -258,19 +258,19 @@ void WerteZurHM()
   HttpClient Hclient;
   switch (HMSequence) {
     case 0:
-      sprintf(Orderstring, "http://192.168.11.220:8181/do.exe?r1=dom.GetObject(\"%s\").State(\"%d\")", SysVarWasserzaehlerHecke, WasserzaehlerHecke);
+      sprintf(Orderstring, "http://192.168.20.220:8181/do.exe?r1=dom.GetObject(\"%s\").State(\"%d\")", SysVarWasserzaehlerHecke, WasserzaehlerHecke);
       break;
     case 1:
-      sprintf(Orderstring, "http://192.168.11.220:8181/do.exe?r1=dom.GetObject(\"%s\").State(\"%s\")", SysVarWasserflussHecke, StrWasserflussHecke);
+      sprintf(Orderstring, "http://192.168.20.220:8181/do.exe?r1=dom.GetObject(\"%s\").State(\"%s\")", SysVarWasserflussHecke, StrWasserflussHecke);
       break;
     case 2:
-      sprintf(Orderstring, "http://192.168.11.220:8181/do.exe?r1=dom.GetObject(\"%s\").State(\"%d\")", SysVarWasserzaehlerRasen, WasserzaehlerRasen);
+      sprintf(Orderstring, "http://192.168.20.220:8181/do.exe?r1=dom.GetObject(\"%s\").State(\"%d\")", SysVarWasserzaehlerRasen, WasserzaehlerRasen);
       break;
     case 3:
-      sprintf(Orderstring, "http://192.168.11.220:8181/do.exe?r1=dom.GetObject(\"%s\").State(\"%s\")", SysVarWasserflussRasen, StrWasserflussRasen);
+      sprintf(Orderstring, "http://192.168.20.220:8181/do.exe?r1=dom.GetObject(\"%s\").State(\"%s\")", SysVarWasserflussRasen, StrWasserflussRasen);
       break;
     case 4:
-      sprintf(Orderstring, "http://192.168.11.220:8181/do.exe?r1=dom.GetObject(\"%s\").State(\"%s\")", SysVarWasserdruck, StrWasserdruck);
+      sprintf(Orderstring, "http://192.168.20.220:8181/do.exe?r1=dom.GetObject(\"%s\").State(\"%s\")", SysVarWasserdruck, StrWasserdruck);
       break;
   }
   ++HMSequence;
