@@ -374,7 +374,7 @@ void WriteCountEEProm(long Count, int BaseAddress) {
 
 void EEPromWrite(void) {
   Serial.println("EEPROM geschrieben");
-  WriteCountEEProm(Wasserzaehler , 0);
+  WriteCountEEProm(WasserzaehlerRaw , 0);
 }
 
 void doAll1Sek(void* context) {
