@@ -142,9 +142,10 @@ void setup() {
   //Serial.println(tick6HourEvent);
 
   WasserzaehlerRawHecke = ReadCountEEProm(0);
-  WasserzaehlerRawHecke = 0;
+  //WasserzaehlerRawHecke = 0;
   WasserzaehlerRawRasen = ReadCountEEProm(4);
-  WasserzaehlerRawRasen = 0;
+  //WasserzaehlerRawRasen = 0;
+  //EEPromWrite();
   Console.begin();
   Console.println("SETUP finished");
 
@@ -190,7 +191,7 @@ void setup() {
 }
 
 void loop() {
-  //wdt_reset(); // Retrigger Watchdog
+  wdt_reset(); // Retrigger Watchdog
   //delay(50); // Poll every 50ms
   t.update();
   // Update the debouncer
@@ -334,8 +335,8 @@ void WriteCountEEProm(long Count, int BaseAddress) {
 
 void EEPromWrite(void) {
   Serial.println("EEPROM geschrieben");
-  WriteCountEEProm(WasserzaehlerHecke , 0);
-  WriteCountEEProm(WasserzaehlerRasen , 4);
+  WriteCountEEProm(WasserzaehlerRawHecke , 0);
+  WriteCountEEProm(WasserzaehlerRawRasen , 4);
 }
 
 void doAll1Sek(void* context) {
