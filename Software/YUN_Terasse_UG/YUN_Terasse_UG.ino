@@ -9,6 +9,7 @@
 #include <avr/wdt.h> // Für AVR-Watchdog
 
 boolean Status = false;
+boolean AenderungSenden = false;
 char Orderstring[255];
 char Str10[10];
 char SysVarWasserzaehlerHecke[] = "Wasser_Hecke";
@@ -20,12 +21,17 @@ char StrWasserflussHecke[10] = "";
 char StrWasserflussRasen[10] = "";
 char StrWasserdruck[10] = "";
 float WasserflussHecke = 0.0;
+float WasserflussHeckeAlt = 0.0;
 float WasserflussRasen = 0.0;
+float WasserflussRasenAlt = 0.0;
 float Wasserdruck = 0.0;
+float WasserdruckAlt = 0.0;
 unsigned long WasserzaehlerHecke = 0;
+unsigned long WasserzaehlerHeckeAlt = 0;
 unsigned long WasserzaehlerRawHecke = 0;
 unsigned long WasserzaehlerOldHecke = 0;
 unsigned long WasserzaehlerRasen = 0;
+unsigned long WasserzaehlerRasenAlt = 0;
 unsigned long WasserzaehlerRawRasen = 0;
 unsigned long WasserzaehlerOldRasen = 0;
 unsigned long OldMilli = 0;
@@ -216,6 +222,7 @@ void WerteAnzeigen()
   lcd.print("W.zaehlerH:        l");
   lcd.setCursor(11, 0);
   lcd.print(WasserzaehlerHecke);
+  Console.println("Daten Start");
   Console.println(WasserzaehlerRawHecke);
   Console.println(WasserzaehlerHecke);
 
@@ -242,6 +249,8 @@ void WerteAnzeigen()
   FloatToString(WasserflussHecke, 10, StrWasserflussHecke);
   lcd.print(StrWasserflussHecke);
   Console.println(StrWasserflussHecke);
+  FloatToString(WasserflussRasen, 10, StrWasserflussRasen);
+  Console.println(StrWasserflussRasen);
 
   // Druck anzeigen
   Wasserdruck = float(analogRead(ain0) - 205) / 818.0 * 10.0; // 4-20mA -> 1-5V -> 0-10 bar
@@ -251,33 +260,48 @@ void WerteAnzeigen()
   FloatToString(Wasserdruck, 10, StrWasserdruck);
   lcd.print(StrWasserdruck);
   Console.println(StrWasserdruck);
+  Console.println("Daten Ende");
 }
 
 void WerteZurHM()
 {
-  HttpClient Hclient;
   switch (HMSequence) {
     case 0:
       sprintf(Orderstring, "http://192.168.20.220:8181/do.exe?r1=dom.GetObject(\"%s\").State(\"%d\")", SysVarWasserzaehlerHecke, WasserzaehlerHecke);
+      if (WasserzaehlerHecke != WasserzaehlerHeckeAlt) AenderungSenden = true;
+      WasserzaehlerHeckeAlt = WasserzaehlerHecke;
       break;
     case 1:
       sprintf(Orderstring, "http://192.168.20.220:8181/do.exe?r1=dom.GetObject(\"%s\").State(\"%s\")", SysVarWasserflussHecke, StrWasserflussHecke);
+      if (WasserflussHecke != WasserflussHeckeAlt) AenderungSenden = true;
+      WasserflussHeckeAlt = WasserflussHecke;
       break;
     case 2:
       sprintf(Orderstring, "http://192.168.20.220:8181/do.exe?r1=dom.GetObject(\"%s\").State(\"%d\")", SysVarWasserzaehlerRasen, WasserzaehlerRasen);
+      if (WasserzaehlerRasen != WasserzaehlerRasenAlt) AenderungSenden = true;
+      WasserzaehlerRasenAlt = WasserzaehlerRasen;
       break;
     case 3:
       sprintf(Orderstring, "http://192.168.20.220:8181/do.exe?r1=dom.GetObject(\"%s\").State(\"%s\")", SysVarWasserflussRasen, StrWasserflussRasen);
+      if (WasserflussRasen != WasserflussRasenAlt) AenderungSenden = true;
+      WasserflussRasenAlt = WasserflussRasen;
       break;
     case 4:
       sprintf(Orderstring, "http://192.168.20.220:8181/do.exe?r1=dom.GetObject(\"%s\").State(\"%s\")", SysVarWasserdruck, StrWasserdruck);
+      if (Wasserdruck != WasserdruckAlt) AenderungSenden = true;
+      WasserdruckAlt = Wasserdruck;
       break;
   }
   ++HMSequence;
   if (HMSequence > 4) HMSequence = 0;
   //Serial.println(Orderstring);
-  Console.println(Orderstring);
-  Hclient.get(Orderstring);
+  Console.println(AenderungSenden);
+  if (AenderungSenden == true) {
+    HttpClient Hclient;
+    Console.println(Orderstring);
+    Hclient.get(Orderstring);
+    AenderungSenden = false;
+  }
 }
 
 void interrupt0()
