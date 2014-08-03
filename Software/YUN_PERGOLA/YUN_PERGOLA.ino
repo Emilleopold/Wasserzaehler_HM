@@ -9,6 +9,7 @@
 #include <avr/wdt.h> // Für AVR-Watchdog
 
 boolean Status = false;
+boolean AenderungSenden = false;
 char Orderstring[255];
 char Str10[10];
 char SysVarTemperatur[] = "Temp_UV_Pergola";
@@ -19,9 +20,13 @@ char StrTemperatur[10] = "";
 char StrWasserfluss[10] = "";
 char StrWasserdruck[10] = "";
 float Temperatur = 0.0;
+float TemperaturAlt = 0.0;
 float Wasserfluss = 0.0;
+float WasserflussAlt = 0.0;
 float Wasserdruck = 0.0;
+float WasserdruckAlt = 0.0;
 unsigned long Wasserzaehler = 0;
+unsigned long WasserzaehlerAlt = 0;
 unsigned long WasserzaehlerRaw = 0;
 unsigned long WasserzaehlerOld = 0;
 unsigned long OldMilli = 0;
@@ -179,8 +184,10 @@ void setup() {
   //Serial.print("6 hour tick started id=");
   //Serial.println(tick6HourEvent);
 
-  WasserzaehlerRaw = ReadCountEEProm(0);
-  //WasserzaehlerRaw = 0;
+  Wasserzaehler = ReadCountEEProm(4);
+  Wasserzaehler = 0;
+  // WriteCountEEProm(Wasserzaehler , 4);
+  // EEPromWrite();
   Console.begin();
   Console.println("SETUP finished");
 
@@ -270,7 +277,7 @@ void WerteAnzeigen()
   Console.println(StrTemperatur);
   
   // Wasserzähler anzeigen
-  Wasserzaehler = WasserzaehlerRaw / 450; // 450 Imp/l
+  // Wasserzaehler = WasserzaehlerRaw / 450; // 450 Imp/l
   lcd.setCursor(0, 1);
   lcd.print("W.zaehler:         l");
   lcd.setCursor(11, 1);
@@ -302,31 +309,48 @@ void WerteAnzeigen()
 
 void WerteZurHM()
 {
-  HttpClient Hclient;
   switch (HMSequence) {
     case 0:
       sprintf(Orderstring, "http://192.168.20.220:8181/do.exe?r1=dom.GetObject(\"%s\").State(\"%s\")", SysVarTemperatur, StrTemperatur);
+      if (Temperatur != TemperaturAlt) AenderungSenden = true;
+      TemperaturAlt = Temperatur;
       break;
     case 1:
       sprintf(Orderstring, "http://192.168.20.220:8181/do.exe?r1=dom.GetObject(\"%s\").State(\"%d\")", SysVarWasserzaehler, Wasserzaehler);
+      if (Wasserzaehler != WasserzaehlerAlt) AenderungSenden = true;
+      WasserzaehlerAlt = Wasserzaehler;
       break;
     case 2:
       sprintf(Orderstring, "http://192.168.20.220:8181/do.exe?r1=dom.GetObject(\"%s\").State(\"%s\")", SysVarWasserfluss, StrWasserfluss);
-      break;
+      if (Wasserfluss != WasserflussAlt) AenderungSenden = true;
+      WasserflussAlt = Wasserfluss;
+     break;
     case 3:
       sprintf(Orderstring, "http://192.168.20.220:8181/do.exe?r1=dom.GetObject(\"%s\").State(\"%s\")", SysVarWasserdruck, StrWasserdruck);
+      if (Wasserdruck != WasserdruckAlt) AenderungSenden = true;
+      WasserdruckAlt = Wasserdruck;
       break;
   }
   ++HMSequence;
   if (HMSequence > 3) HMSequence = 0;
   //Serial.println(Orderstring);
-  Console.println(Orderstring);
-  Hclient.get(Orderstring);
+  Console.print("STATUS AenderungsSenden :");
+  Console.println(AenderungSenden);
+  if (AenderungSenden == true) {
+    HttpClient Hclient;
+    Console.println(Orderstring);
+    Hclient.get(Orderstring);
+    AenderungSenden = false;
+  }
 }
 
 void interrupt()
 {
   ++WasserzaehlerRaw;
+  if (WasserzaehlerRaw > 450) {
+    ++Wasserzaehler;
+    WasserzaehlerRaw = 0; // 450 Imp/l
+  }
 }
 
 void FloatToString( float val, unsigned int precision, char* Dest) {
@@ -374,7 +398,7 @@ void WriteCountEEProm(long Count, int BaseAddress) {
 
 void EEPromWrite(void) {
   Serial.println("EEPROM geschrieben");
-  WriteCountEEProm(WasserzaehlerRaw , 0);
+  WriteCountEEProm(Wasserzaehler , 4);
 }
 
 void doAll1Sek(void* context) {

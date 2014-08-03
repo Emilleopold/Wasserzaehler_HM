@@ -147,11 +147,11 @@ void setup() {
   //Serial.print("6 hour tick started id=");
   //Serial.println(tick6HourEvent);
 
-  WasserzaehlerRawHecke = ReadCountEEProm(0);
-  //WasserzaehlerRawHecke = 0;
-  WasserzaehlerRawRasen = ReadCountEEProm(4);
-  //WasserzaehlerRawRasen = 0;
-  //EEPromWrite();
+  WasserzaehlerHecke = ReadCountEEProm(0);
+  WasserzaehlerHecke = 0;
+  WasserzaehlerRasen = ReadCountEEProm(4);
+  WasserzaehlerRasen = 0;
+  // EEPromWrite();
   Console.begin();
   Console.println("SETUP finished");
 
@@ -217,7 +217,7 @@ void loop() {
 void WerteAnzeigen()
 {
   // WasserzählerHecke anzeigen
-  WasserzaehlerHecke = WasserzaehlerRawHecke / 450; // 450 Imp/l
+  // WasserzaehlerHecke = WasserzaehlerRawHecke / 450; // 450 Imp/l
   lcd.setCursor(0, 0);
   lcd.print("W.zaehlerH:        l");
   lcd.setCursor(11, 0);
@@ -228,7 +228,7 @@ void WerteAnzeigen()
 
   
   // WasserzählerRasen anzeigen
-  WasserzaehlerRasen = WasserzaehlerRawRasen / 450; // 450 Imp/l
+  // WasserzaehlerRasen = WasserzaehlerRawRasen / 450; // 450 Imp/l
   lcd.setCursor(0, 1);
   lcd.print("W.zaehlerR:        l");
   lcd.setCursor(11, 1);
@@ -295,6 +295,7 @@ void WerteZurHM()
   ++HMSequence;
   if (HMSequence > 4) HMSequence = 0;
   //Serial.println(Orderstring);
+  Console.print("STATUS AenderungsSenden :");
   Console.println(AenderungSenden);
   if (AenderungSenden == true) {
     HttpClient Hclient;
@@ -307,11 +308,19 @@ void WerteZurHM()
 void interrupt0()
 {
   ++WasserzaehlerRawHecke;
+  if (WasserzaehlerRawHecke > 450) {
+    ++WasserzaehlerHecke;
+    WasserzaehlerRawHecke = 0; // 450 Imp/l
+  }
 }
 
 void interrupt1()
 {
   ++WasserzaehlerRawRasen;
+  if (WasserzaehlerRawRasen > 450) {
+    ++WasserzaehlerRasen;
+    WasserzaehlerRawRasen = 0; // 450 Imp/l
+  }
 }
 
 void FloatToString( float val, unsigned int precision, char* Dest) {
@@ -359,8 +368,8 @@ void WriteCountEEProm(long Count, int BaseAddress) {
 
 void EEPromWrite(void) {
   Serial.println("EEPROM geschrieben");
-  WriteCountEEProm(WasserzaehlerRawHecke , 0);
-  WriteCountEEProm(WasserzaehlerRawRasen , 4);
+  WriteCountEEProm(WasserzaehlerHecke , 0);
+  WriteCountEEProm(WasserzaehlerRasen , 4);
 }
 
 void doAll1Sek(void* context) {
@@ -372,7 +381,9 @@ void doAll1Sek(void* context) {
   ledState1s = !ledState1s;
   digitalWrite(ledrd, ledState1s);
   TimeState = !TimeState;
-  digitalWrite(ledButton3, TimeState);
+  digitalWrite(ledButton1, TimeState);
+  // digitalWrite(ledButton2, TimeState);
+  // digitalWrite(ledButton3, TimeState);
   Serial.println(debounceButton1.read());
   Serial.println(debounceButton2.read());
   Serial.println(debounceButton3.read());
